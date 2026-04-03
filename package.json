@@ -36,6 +36,10 @@
   ],
   "author": "Ethan E. Allen",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/calabamatex/stigmergy-mcp.git"
+  },
   "engines": {
     "node": ">=18"
   },
