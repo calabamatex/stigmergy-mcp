@@ -18,6 +18,7 @@
     "start": "node dist/src/index.js",
     "lint": "tsc --noEmit",
     "loc": "echo '=== Source ===' && find src -name '*.ts' | xargs wc -l && echo '=== Tests ===' && find tests -name '*.ts' | xargs wc -l && echo '=== Files ===' && find src -type f | wc -l",
+    "prepare": "sh scripts/setup-hooks.sh",
     "prepublishOnly": "npm run build && npm test"
   },
   "files": [
@@ -33,14 +34,17 @@
     "swarm",
     "claude-code"
   ],
-  "author": "",
+  "author": "Ethan E. Allen",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/calabamatex/stigmergy-mcp.git"
+  },
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
-    "@rollup/rollup-darwin-arm64": "^4.60.0",
     "better-sqlite3": "^11.7.0",
     "zod": "^4.3.6"
   },

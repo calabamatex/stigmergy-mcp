@@ -145,3 +145,10 @@ CREATE INDEX IF NOT EXISTS idx_traces_created ON traces(created_at);
 3. `npm run loc` — confirm src/ under 1500 LOC, under 12 files
 4. `npx @modelcontextprotocol/inspector node dist/src/index.js` — all 4 tools visible and callable
 5. Live test: use in a real Claude Code session, verify deposit + sense round-trip works
+
+## CI & Development Harness
+
+- **Clean clone gate**: `rm -rf node_modules dist && npm ci && npm run build && npm test` must pass on Linux
+- **Pre-commit hook**: auto-installed via `npm install` (runs build + test). Do not skip with --no-verify.
+- **GitHub Actions CI**: runs on all PRs to main — build, test, and LOC constraint check across Node 18/20/22
+- **Every commit must pass**: build + full test suite. No "fix later" commits.

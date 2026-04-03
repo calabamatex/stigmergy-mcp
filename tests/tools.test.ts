@@ -125,6 +125,14 @@ describe('MCP Tools', () => {
       const updated = JSON.parse((result.content as any)[0].text);
       expect(updated.intensity).toBeCloseTo(0.2);
     });
+
+    it('returns isError for non-existent trace', async () => {
+      const result = await client.callTool({
+        name: 'reinforce_trace',
+        arguments: { trace_id: 'nonexistent-id', delta: 0.1 },
+      });
+      expect(result.isError).toBe(true);
+    });
   });
 
   describe('get_gradient', () => {
