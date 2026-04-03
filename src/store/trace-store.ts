@@ -99,6 +99,7 @@ export class TraceStore {
    */
   private areaPrefix(area: string, radius: number): string {
     const parts = area.replace(/\/$/, '').split('/');
+    if (parts.length <= 1) return parts[0];
     const depth = Math.max(1, parts.length - radius);
     return parts.slice(0, depth).join('/') + '/';
   }

@@ -96,6 +96,13 @@ describe('TraceStore', () => {
       expect(results[1].effective_intensity).toBeGreaterThanOrEqual(results[2].effective_intensity);
     });
 
+    it('finds traces with flat file paths (no slashes)', () => {
+      store.deposit({ ...defaultInput, area: 'file.ts' });
+      const results = store.sense({ area: 'file.ts', radius: 2, min_intensity: 0.01 });
+      expect(results.length).toBe(1);
+      expect(results[0].area).toBe('file.ts');
+    });
+
     it('returns empty array when no matches', () => {
       const results = store.sense({ area: 'src/auth/', radius: 2, min_intensity: 0.01 });
       expect(results).toEqual([]);
