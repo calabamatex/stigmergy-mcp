@@ -8,11 +8,13 @@ export function registerSense(server: McpServer, store: TraceStore): void {
     'Read stigmergic traces near a given area, sorted by effective intensity',
     SenseInput.shape,
     async (args: Record<string, unknown>) => {
-      const input = SenseInput.parse(args);
-      const traces = store.sense(input);
-      return {
-        content: [{ type: 'text', text: JSON.stringify(traces, null, 2) }],
-      };
+      try {
+        const input = SenseInput.parse(args);
+        const traces = store.sense(input);
+        return { content: [{ type: 'text', text: JSON.stringify(traces, null, 2) }] };
+      } catch (err) {
+        return { content: [{ type: 'text', text: `Error: ${err instanceof Error ? err.message : String(err)}` }], isError: true };
+      }
     },
   );
 }
