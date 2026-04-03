@@ -7,7 +7,7 @@ export function registerReinforce(server: McpServer, store: TraceStore): void {
     'reinforce_trace',
     'Strengthen or weaken an existing stigmergic trace',
     ReinforceInput.shape,
-    async (args) => {
+    async (args: Record<string, unknown>) => {
       const input = ReinforceInput.parse(args);
       const trace = store.reinforce(input);
       return {

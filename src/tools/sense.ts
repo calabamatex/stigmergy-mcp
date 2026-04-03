@@ -7,7 +7,7 @@ export function registerSense(server: McpServer, store: TraceStore): void {
     'sense_environment',
     'Read stigmergic traces near a given area, sorted by effective intensity',
     SenseInput.shape,
-    async (args) => {
+    async (args: Record<string, unknown>) => {
       const input = SenseInput.parse(args);
       const traces = store.sense(input);
       return {

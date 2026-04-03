@@ -147,7 +147,7 @@ export class TraceStore {
     const topTraces = hydrated.slice(0, input.limit);
     const byType = { attraction: [] as TraceWithEffective[], danger: [] as TraceWithEffective[], info: [] as TraceWithEffective[] };
     for (const t of topTraces) {
-      byType[t.trace_type].push(t);
+      byType[t.trace_type as keyof typeof byType].push(t);
     }
     return { area: input.area, top_traces: topTraces, by_type: byType };
   }

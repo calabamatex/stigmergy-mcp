@@ -40,7 +40,6 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
-    "@rollup/rollup-darwin-arm64": "^4.60.0",
     "better-sqlite3": "^11.7.0",
     "zod": "^4.3.6"
   },

@@ -7,7 +7,7 @@ export function registerGradient(server: McpServer, store: TraceStore): void {
     'get_gradient',
     'Return strongest stigmergic signals across an area, grouped by trace type',
     GradientInput.shape,
-    async (args) => {
+    async (args: Record<string, unknown>) => {
       const input = GradientInput.parse(args);
       const result = store.gradient(input);
       return {

@@ -7,7 +7,7 @@ export function registerDeposit(server: McpServer, store: TraceStore): void {
     'deposit_trace',
     'Leave a stigmergic trace in the shared environment for other agents to sense',
     DepositInput.shape,
-    async (args) => {
+    async (args: Record<string, unknown>) => {
       const input = DepositInput.parse(args);
       const trace = store.deposit(input);
       return {
