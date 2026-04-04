@@ -15,7 +15,7 @@
     "@stigmergy-benchmark/core": "workspace:*",
     "@stigmergy-benchmark/llm-client": "workspace:*",
     "@stigmergy-benchmark/classifier": "workspace:*",
-    "stigmergy-mcp": "file:../../..",
+    "stigmergy-mcp": "github:calabamatex/stigmergy-mcp",
     "@modelcontextprotocol/sdk": "^1.27.1"
   }
 }
