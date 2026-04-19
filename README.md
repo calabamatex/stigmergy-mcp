@@ -1,5 +1,7 @@
 # stigmergy-mcp
 
+![Stigmergy-MCP: Solving the Multi-Agent Scaling Crisis — infographic contrasting O(N²) direct-message overhead with O(N) stigmergic coordination, plus the four core MCP tools](docs/images/stigmergy-mcp-hero.png)
+
 A shared signal layer that lets multiple AI coding agents coordinate without talking to each other. Built as a standalone [MCP](https://modelcontextprotocol.io/) server.
 
 ## What is Stigmergy?
