@@ -26,6 +26,14 @@ import {
 
 const PRUNE_THRESHOLD = 0.01;
 
+function safeParse<T>(json: string, fallback: T): T {
+  try { return JSON.parse(json); } catch { return fallback; }
+}
+
+function escapeLike(s: string): string {
+  return s.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+}
+
 const CREATE_TABLE = `
 CREATE TABLE IF NOT EXISTS traces (
   id TEXT PRIMARY KEY,
@@ -79,8 +87,8 @@ export class TraceStore {
       intensity: row.intensity as number,
       decay_hours: row.decay_hours as number,
       created_at: row.created_at as string,
-      tags: JSON.parse(row.tags as string),
-      metadata: JSON.parse(row.metadata as string),
+      tags: safeParse(row.tags as string, []),
+      metadata: safeParse(row.metadata as string, {}),
     };
     return {
       ...trace,
@@ -117,8 +125,8 @@ export class TraceStore {
 
   sense(input: SenseInput): TraceWithEffective[] {
     const prefix = this.areaPrefix(input.area, input.radius);
-    let sql = `SELECT * FROM traces WHERE area LIKE ?`;
-    const params: unknown[] = [prefix + '%'];
+    let sql = `SELECT * FROM traces WHERE area LIKE ? ESCAPE '\\'`;
+    const params: unknown[] = [escapeLike(prefix) + '%'];
     if (input.trace_type) {
       sql += ` AND trace_type = ?`;
       params.push(input.trace_type);
@@ -140,7 +148,7 @@ export class TraceStore {
   }
 
   gradient(input: GradientInput): GradientResult {
-    const rows = this.db.prepare(`SELECT * FROM traces WHERE area LIKE ?`).all(input.area + '%') as Record<string, unknown>[];
+    const rows = this.db.prepare(`SELECT * FROM traces WHERE area LIKE ? ESCAPE '\\'`).all(escapeLike(input.area) + '%') as Record<string, unknown>[];
     const hydrated = rows.map(r => this.hydrateTrace(r))
       .filter(t => t.effective_intensity >= PRUNE_THRESHOLD)
       .sort((a, b) => b.effective_intensity - a.effective_intensity);
@@ -153,17 +161,15 @@ export class TraceStore {
   }
 
   prune(): number {
-    const rows = this.db.prepare(`SELECT * FROM traces`).all() as Record<string, unknown>[];
-    const toDelete: string[] = [];
-    for (const row of rows) {
-      const eff = this.effectiveIntensity(row.intensity as number, row.decay_hours as number, row.created_at as string);
-      if (eff < PRUNE_THRESHOLD) toDelete.push(row.id as string);
-    }
-    if (toDelete.length > 0) {
-      const placeholders = toDelete.map(() => '?').join(',');
-      this.db.prepare(`DELETE FROM traces WHERE id IN (${placeholders})`).run(...toDelete);
-    }
-    return toDelete.length;
+    const nowMs = Date.now();
+    const stmt = this.db.prepare(`
+      DELETE FROM traces
+      WHERE intensity * EXP(
+        -(CAST(? - (CAST(strftime('%s', created_at) AS REAL) * 1000) AS REAL) / 3600000.0)
+        / decay_hours
+      ) < ?
+    `);
+    return stmt.run(nowMs, PRUNE_THRESHOLD).changes;
   }
 
   close(): void {

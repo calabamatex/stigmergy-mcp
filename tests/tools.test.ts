@@ -52,6 +52,32 @@ describe('MCP Tools', () => {
         arguments: { area: 'src/test.ts' },
       });
       expect(result.isError).toBe(true);
+      const errorText = (result.content as any)[0].text;
+      expect(typeof errorText).toBe('string');
+      expect(errorText.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('error handling', () => {
+    it('returns structured error for non-existent trace reinforce', async () => {
+      const result = await client.callTool({
+        name: 'reinforce_trace',
+        arguments: { trace_id: 'nonexistent-id', delta: 0.1 },
+      });
+      expect(result.isError).toBe(true);
+      const errorText = (result.content as any)[0].text;
+      expect(errorText).toContain('Trace not found');
+    });
+
+    it('returns structured error for invalid trace_type', async () => {
+      const result = await client.callTool({
+        name: 'deposit_trace',
+        arguments: {
+          area: 'src/test.ts', action: 'test', agent_id: 'a1',
+          trace_type: 'invalid_type', intensity: 0.5, decay_hours: 24, tags: [], metadata: {},
+        },
+      });
+      expect(result.isError).toBe(true);
     });
   });
 
