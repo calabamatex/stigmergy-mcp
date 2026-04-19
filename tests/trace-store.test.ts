@@ -26,7 +26,7 @@ describe('TraceStore', () => {
   describe('deposit', () => {
     it('creates a trace and returns it with a valid ID', () => {
       const trace = store.deposit(defaultInput);
-      expect(trace.id).toBeTruthy();
+      expect(trace.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
       expect(trace.area).toBe('src/auth/session.ts');
       expect(trace.action).toBe('refactored session management');
       expect(trace.agent_id).toBe('agent-1');
@@ -92,13 +92,72 @@ describe('TraceStore', () => {
       store.deposit({ ...defaultInput, intensity: 0.6 });
 
       const results = store.sense({ area: 'src/auth/session.ts', radius: 2, min_intensity: 0.01 });
-      expect(results[0].effective_intensity).toBeGreaterThanOrEqual(results[1].effective_intensity);
-      expect(results[1].effective_intensity).toBeGreaterThanOrEqual(results[2].effective_intensity);
+      expect(results[0].effective_intensity).toBeGreaterThan(results[1].effective_intensity);
+      expect(results[1].effective_intensity).toBeGreaterThan(results[2].effective_intensity);
     });
 
     it('returns empty array when no matches', () => {
       const results = store.sense({ area: 'src/auth/', radius: 2, min_intensity: 0.01 });
       expect(results).toEqual([]);
+    });
+
+    it('excludes traces outside prefix with radius', () => {
+      store.deposit({ ...defaultInput, area: 'src/auth/session.ts' });
+      store.deposit({ ...defaultInput, area: 'lib/other.ts' });
+
+      const results = store.sense({ area: 'src/auth/session.ts', radius: 1, min_intensity: 0.01 });
+      expect(results.every(t => t.area.startsWith('src/auth/'))).toBe(true);
+    });
+
+    it('handles min_intensity=0.0 returning all traces', () => {
+      store.deposit({ ...defaultInput, intensity: 0.01 });
+      const results = store.sense({ area: defaultInput.area, radius: 2, min_intensity: 0.0 });
+      expect(results.length).toBe(1);
+    });
+
+    it('handles min_intensity=1.0 filtering all but max', () => {
+      store.deposit({ ...defaultInput, intensity: 0.99 });
+      const results = store.sense({ area: defaultInput.area, radius: 2, min_intensity: 1.0 });
+      expect(results.length).toBe(0);
+    });
+
+    it('handles area with trailing slash', () => {
+      store.deposit({ ...defaultInput, area: 'src/auth/session.ts' });
+      const results = store.sense({ area: 'src/auth/', radius: 1, min_intensity: 0.01 });
+      expect(results.length).toBe(1);
+    });
+
+    it('handles unicode in area and action', () => {
+      const trace = store.deposit({ ...defaultInput, area: 'src/用户/auth.ts', action: 'fixed 漏洞' });
+      expect(trace.area).toBe('src/用户/auth.ts');
+      expect(trace.action).toBe('fixed 漏洞');
+      const sensed = store.sense({ area: 'src/用户/auth.ts', radius: 1, min_intensity: 0.01 });
+      expect(sensed.length).toBe(1);
+      expect(sensed[0].action).toBe('fixed 漏洞');
+    });
+
+    it('filters by tags (AND logic)', () => {
+      store.deposit({ ...defaultInput, tags: ['security', 'auth'] });
+      store.deposit({ ...defaultInput, tags: ['perf'] });
+
+      const both = store.sense({ area: defaultInput.area, radius: 2, min_intensity: 0.01, tags: ['security'] });
+      expect(both.length).toBe(1);
+      expect(both[0].tags).toContain('security');
+
+      const multi = store.sense({ area: defaultInput.area, radius: 2, min_intensity: 0.01, tags: ['security', 'auth'] });
+      expect(multi.length).toBe(1);
+
+      const none = store.sense({ area: defaultInput.area, radius: 2, min_intensity: 0.01, tags: ['security', 'perf'] });
+      expect(none.length).toBe(0);
+    });
+
+    it('filters by agent_id', () => {
+      store.deposit({ ...defaultInput, agent_id: 'agent-alpha' });
+      store.deposit({ ...defaultInput, agent_id: 'agent-beta' });
+
+      const results = store.sense({ area: defaultInput.area, radius: 2, min_intensity: 0.01, agent_id: 'agent-alpha' });
+      expect(results.length).toBe(1);
+      expect(results[0].agent_id).toBe('agent-alpha');
     });
   });
 
@@ -126,7 +185,19 @@ describe('TraceStore', () => {
     });
 
     it('throws for non-existent trace', () => {
-      expect(() => store.reinforce({ trace_id: 'nope', delta: 0.1 })).toThrow('Trace not found');
+      expect(() => store.reinforce({ trace_id: 'nope', delta: 0.1 })).toThrow('Trace not found: nope');
+    });
+
+    it('handles intensity boundary values (0 and 1)', () => {
+      const t0 = store.deposit({ ...defaultInput, intensity: 0 });
+      expect(t0.intensity).toBe(0);
+      const up = store.reinforce({ trace_id: t0.id, delta: 1 });
+      expect(up.intensity).toBe(1);
+
+      const t1 = store.deposit({ ...defaultInput, intensity: 1 });
+      expect(t1.intensity).toBe(1);
+      const down = store.reinforce({ trace_id: t1.id, delta: -1 });
+      expect(down.intensity).toBe(0);
     });
   });
 
@@ -134,7 +205,7 @@ describe('TraceStore', () => {
     it('freshly deposited trace has effective ≈ stored intensity', () => {
       const trace = store.deposit(defaultInput);
       const sensed = store.sense({ area: trace.area, radius: 2, min_intensity: 0.01 });
-      expect(sensed[0].effective_intensity).toBeCloseTo(trace.intensity, 1);
+      expect(sensed[0].effective_intensity).toBeCloseTo(trace.intensity, 2);
     });
 
     it('effective intensity follows exp(-elapsed/decay_hours)', () => {
@@ -151,7 +222,7 @@ describe('TraceStore', () => {
 
       const sensed = store.sense({ area: 'src/test.ts', radius: 2, min_intensity: 0.01 });
       const expected = Math.exp(-24 / 24); // ~0.368
-      expect(sensed[0].effective_intensity).toBeCloseTo(expected, 1);
+      expect(sensed[0].effective_intensity).toBeCloseTo(expected, 2);
     });
   });
 
@@ -208,6 +279,32 @@ describe('TraceStore', () => {
       const result = store.gradient({ area: 'nonexistent/', limit: 5 });
       expect(result.top_traces).toEqual([]);
       expect(result.by_type).toEqual({ attraction: [], danger: [], info: [] });
+    });
+  });
+
+  describe('file-based persistence', () => {
+    it('persists traces across store instances', () => {
+      const fs = require('fs');
+      const path = require('path');
+      const dbPath = path.join(require('os').tmpdir(), `stigmergy-test-${Date.now()}.db`);
+      try {
+        const store1 = new TraceStore(dbPath);
+        const trace = store1.deposit({ ...defaultInput, area: 'src/persist.ts' });
+        store1.close();
+
+        const store2 = new TraceStore(dbPath);
+        const sensed = store2.sense({ area: 'src/persist.ts', radius: 2, min_intensity: 0.01 });
+        expect(sensed.length).toBe(1);
+        expect(sensed[0].id).toBe(trace.id);
+        expect(sensed[0].area).toBe('src/persist.ts');
+        store2.close();
+      } finally {
+        if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
+        const walPath = dbPath + '-wal';
+        const shmPath = dbPath + '-shm';
+        if (fs.existsSync(walPath)) fs.unlinkSync(walPath);
+        if (fs.existsSync(shmPath)) fs.unlinkSync(shmPath);
+      }
     });
   });
 });

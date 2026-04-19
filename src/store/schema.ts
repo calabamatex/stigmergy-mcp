@@ -48,6 +48,8 @@ export const SenseInput = z.object({
   radius: z.number().int().min(0).default(2).describe('Path depth for prefix matching'),
   min_intensity: z.number().min(0).max(1).default(0.05).describe('Minimum effective intensity to include'),
   trace_type: TraceType.optional().describe('Filter by trace type'),
+  tags: z.array(z.string()).optional().describe('Filter to traces containing ALL of these tags'),
+  agent_id: z.string().min(1).optional().describe('Filter to traces from a specific agent'),
 });
 
 export type SenseInput = z.infer<typeof SenseInput>;

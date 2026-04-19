@@ -131,11 +131,18 @@ export class TraceStore {
       sql += ` AND trace_type = ?`;
       params.push(input.trace_type);
     }
+    if (input.agent_id) {
+      sql += ` AND agent_id = ?`;
+      params.push(input.agent_id);
+    }
     const rows = this.db.prepare(sql).all(...params) as Record<string, unknown>[];
-    return rows
+    let results = rows
       .map(r => this.hydrateTrace(r))
-      .filter(t => t.effective_intensity >= input.min_intensity)
-      .sort((a, b) => b.effective_intensity - a.effective_intensity);
+      .filter(t => t.effective_intensity >= input.min_intensity);
+    if (input.tags && input.tags.length > 0) {
+      results = results.filter(t => input.tags!.every(tag => t.tags.includes(tag)));
+    }
+    return results.sort((a, b) => b.effective_intensity - a.effective_intensity);
   }
 
   reinforce(input: ReinforceInput): TraceWithEffective {

@@ -86,8 +86,14 @@ Read traces near a given area. Read-only.
 | `radius` | integer | 2 | How many path segments to walk up for matching |
 | `min_intensity` | number (0-1) | 0.05 | Minimum effective intensity to include |
 | `trace_type` | enum | optional | Filter by type |
+| `tags` | string[] | optional | Filter to traces containing ALL of these tags |
+| `agent_id` | string | optional | Filter to traces from a specific agent |
 
-**How radius works:** The `radius` parameter controls how broad the search is by walking up the path hierarchy. For example, `sense_environment(area: "src/auth/session.ts", radius: 2)` walks up 2 segments from `session.ts` and matches all traces under `src/`. With `radius: 1`, it would match traces under `src/auth/`. With `radius: 0`, it matches only `src/auth/session.ts` exactly.
+**How radius works:** The `radius` parameter controls how broad the search is by walking up the path hierarchy. Given `area="src/auth/session.ts"`:
+
+- `radius=0` → prefix `src/auth/session.ts/` (matches only children, not the file itself)
+- `radius=1` → prefix `src/auth/` (sibling files in the same directory)
+- `radius=2` → prefix `src/` (broader area)
 
 Returns traces sorted by effective intensity (descending).
 
@@ -109,7 +115,7 @@ Return the strongest signals across a broad area — the "which direction should
 | `area` | string | required | Broad area prefix (e.g. `"src/"`) |
 | `limit` | integer | 5 | Max traces to return |
 
-Returns top traces grouped by `trace_type`.
+Returns the top N traces by effective intensity. The `by_type` grouping only includes traces within the top N — not all traces in the area.
 
 ## Example: Multi-Agent Workflow
 
